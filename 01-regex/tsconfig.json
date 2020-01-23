@@ -1,7 +1,8 @@
 {
     "compilerOptions" : {
         "noEmitOnError": true,
-        "lib" : ["es2017","dom"],
+        "target" : "es6",
+        "lib" : ["es5", "es6", "es2017","dom"],
         "noImplicitAny": true,
         "moduleResolution": "Classic"
     },
