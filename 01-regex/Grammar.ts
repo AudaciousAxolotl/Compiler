@@ -4,7 +4,7 @@ export class Grammar
         let g = gramgram.split('\n')
         let bBoi : Set<string> = new Set();
         g.forEach(element => {
-            bBoi.add(element);
+           console.log(element)
         });
         //print(g)
     }

@@ -5,7 +5,7 @@ var Grammar = /** @class */ (function () {
         var g = gramgram.split('\n');
         var bBoi = new Set();
         g.forEach(function (element) {
-            bBoi.add(element);
+            console.log(element);
         });
         //print(g)
     }
