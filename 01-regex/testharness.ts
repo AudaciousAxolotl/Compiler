@@ -1,4 +1,3 @@
-
 declare var require:any;
 let fs = require("fs");
 import {Grammar} from "./Grammar";
