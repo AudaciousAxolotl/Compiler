@@ -6,7 +6,6 @@ export class Grammar
         let mappy:Map<string, RegExp> = new Map();
         let g = gramgram.trim().split('\n');
 
-
         console.log(g);
         for (var i = 0; i < g.length; i++){
             //console.log("hey");
