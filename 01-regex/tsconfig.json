@@ -5,6 +5,7 @@
         "noImplicitAny": true,
         "moduleResolution": "Classic",
         "sourceMap": true,
+        "downlevelIteration": true,
     },
     "include": ["*.ts"]
 }
