@@ -6,11 +6,10 @@ export class Grammar
 
     constructor(gramgram : string){
         //console.log("Heyo, constructor time");
-        //console.log(gramgram);
-        let g = gramgram.trim().split('\n');
+        let g = gramgram.trim().split('\n\n');
 
 
-        //console.log(g);
+        //For regex creation
         for (var i = 0; i < g.length; i++){
             //console.log("hey");
             let a = g[i].trim().split(' -> ');
@@ -23,7 +22,7 @@ export class Grammar
             try{
                 //ToDo: Check for duplicate keys a[0]
                 let rex = new RegExp(a[1].trim(),"gy");
-                if (this.mappy.has(a[0].trim())){
+                if (this.mappy.has(a[0].trim())){ //if it's already in the map
                     throw new Error("you already have this token!"+ a[0].trim())
                 }
                 //console.log(rex);
