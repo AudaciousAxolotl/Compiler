@@ -4,9 +4,8 @@ var Grammar = /** @class */ (function () {
     function Grammar(gramgram) {
         this.mappy = new Map();
         //console.log("Heyo, constructor time");
-        //console.log(gramgram);
-        var g = gramgram.trim().split('\n');
-        //console.log(g);
+        var g = gramgram.trim().split('\n\n');
+        //For regex creation
         for (var i = 0; i < g.length; i++) {
             //console.log("hey");
             var a = g[i].trim().split(' -> ');
@@ -18,7 +17,7 @@ var Grammar = /** @class */ (function () {
             try {
                 //ToDo: Check for duplicate keys a[0]
                 var rex = new RegExp(a[1].trim(), "gy");
-                if (this.mappy.has(a[0].trim())) {
+                if (this.mappy.has(a[0].trim())) { //if it's already in the map
                     throw new Error("you already have this token!" + a[0].trim());
                 }
                 //console.log(rex);
