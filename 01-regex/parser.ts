@@ -1,5 +1,5 @@
 import {Token} from './Token'
-
+//<3
 declare var require:any;
 let antlr4 = require('./antlr4')
 let Lexer = require('./gramLexer.js').gramLexer;
