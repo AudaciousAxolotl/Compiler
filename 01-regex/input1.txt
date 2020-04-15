@@ -1,0 +1,12 @@
+int fp;
+{
+    fp = open("blah");
+    iffy = 42;
+    if ( 1 ){
+        write(fp, 40*x+2 );
+    }
+    //this is a comment
+    foo( 1>2, 3+4*5, bar() );
+    close(fp);
+    print(value);
+}

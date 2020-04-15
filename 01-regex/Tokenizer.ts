@@ -24,7 +24,8 @@ export class Tokenizer{
     }
     next(): Token {
         if (this.idx >= this.inputData.length-1){
-            return new Token("$", undefined, this.currentLine);
+
+            return new Token(undefined, this.currentLine, "$");
         }
 
         // ...return next token...
@@ -47,7 +48,7 @@ export class Tokenizer{
                 this.currentLine += pe.length-1;
 
                 if(k != 'WHITESPACE' && k != 'COMMENT') {
-                    let token = new Token(k, lexy, t);
+                    let token = new Token(k, t, lexy );
                     this.previous = this.cur;
                     this.cur = token;
                     return token;

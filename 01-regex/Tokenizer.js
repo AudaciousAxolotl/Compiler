@@ -28,7 +28,7 @@ var Tokenizer = /** @class */ (function () {
     Tokenizer.prototype.next = function () {
         var e_1, _a;
         if (this.idx >= this.inputData.length - 1) {
-            return new Token_1.Token("$", undefined, this.currentLine);
+            return new Token_1.Token(undefined, this.currentLine, "$");
         }
         try {
             // ...return next token...
@@ -51,7 +51,7 @@ var Tokenizer = /** @class */ (function () {
                     var pe = lexy.split('\n');
                     this.currentLine += pe.length - 1;
                     if (k != 'WHITESPACE' && k != 'COMMENT') {
-                        var token = new Token_1.Token(k, lexy, t);
+                        var token = new Token_1.Token(k, t, lexy);
                         this.previous = this.cur;
                         this.cur = token;
                         return token;

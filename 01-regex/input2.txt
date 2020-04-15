@@ -1,0 +1,12 @@
+//this should be rejected due to trailing garbage
+{
+    fp = open("blah");
+    iffy = 42;
+    if ( 1 ){
+        write(fp, 40*x+2, value );
+    }
+    close(fp);
+    print(value);
+}
+
+int junk; 
