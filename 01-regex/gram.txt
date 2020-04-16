@@ -31,7 +31,7 @@ CLOSE : 'close';
 ID : [A-Za-z_][A-Za-z_0-9]*;
 WHITESPACE : [ \t\r\n]+ -> skip;
 
-start : program EOF;
+//start : program EOF;
 program : var_decl_list braceblock;
 stmts : stmt stmts | ;
 stmt : cond | loop | return_stmt SEMI | assign SEMI | func_call SEMI;
@@ -39,7 +39,7 @@ loop : WHILE LP expr RP braceblock;
 cond : IF LP expr RP braceblock | IF LP expr RP braceblock ELSE braceblock;
 braceblock : LBR stmts RBR;
 return_stmt : RETURN expr;
-expr : orexp;
+expr : NUM;
 orexp : orexp OR andexp | andexp ;
 andexp : andexp AND notexp | notexp;
 notexp :  NOT notexp | rel;

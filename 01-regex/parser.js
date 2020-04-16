@@ -4,6 +4,8 @@ var Token_1 = require("./Token");
 var antlr4 = require('./antlr4');
 var Lexer = require('./gramLexer.js').gramLexer;
 var Parser = require('./gramParser.js').gramParser;
+var asmCode = "";
+var labelCounter = 0; //made this in asm1
 var ErrorHandler = /** @class */ (function () {
     function ErrorHandler() {
     }
@@ -13,12 +15,127 @@ var ErrorHandler = /** @class */ (function () {
     };
     return ErrorHandler;
 }());
+//asm1
+function ICE() {
+    throw new Error("ICE is here to take away your mexicans");
+}
+function makeAsm(root) {
+    asmCode = "";
+    labelCounter = 0;
+    emit("default rel");
+    emit("section .text");
+    emit("global main");
+    emit("main:");
+    programNodeCode(root);
+    emit("ret");
+    emit("section .data");
+    return asmCode + "\n";
+}
+function emit(instr) {
+    asmCode += instr;
+    asmCode += "\n";
+}
+function exprNodeCode(n) {
+    //expr -> NUM
+    var d = parseInt(n.children[0].token.lexeme, 10);
+    emit("mov rax, " + d);
+}
+function programNodeCode(n) {
+    //program -> braceblock
+    if (n.sym != "program")
+        ICE();
+    braceblockNodeCode(n.children[1]);
+}
+function braceblockNodeCode(n) {
+    //braceblock -> LBR stmts RBR
+    stmtsNodeCode(n.children[1]);
+}
+function stmtsNodeCode(n) {
+    //stmts -> stmt stmts | lambda
+    console.log(n.children.length);
+    if (n.children.length == 0)
+        return;
+    stmtNodeCode(n.children[0]);
+    stmtsNodeCode(n.children[1]);
+}
+function label() {
+    var s = "lbl" + labelCounter;
+    labelCounter++;
+    return s;
+}
+function loopNodeCode(n) {
+    //poopy stinky baby
+    //loop -> WHILE LP expr RP bblock
+    //Want to have something to keep track of the beginner of the loop
+    var startofLoopLabel = label();
+    emit(startofLoopLabel + ":");
+    exprNodeCode(n.children[2]);
+    var endloopLabel = label();
+    emit("cmp rax, 0");
+    emit("je " + endloopLabel);
+    braceblockNodeCode(n.children[4]);
+    emit("jmp " + startofLoopLabel);
+    emit(endloopLabel + ":");
+}
+function condNodeCode(n) {
+    //cond -> IF LP expr RP braceblock |
+    //  IF LP expr RP braceblock ELSE braceblock
+    if (n.children.length === 5) {
+        //no 'else'
+        exprNodeCode(n.children[2]); //leaves result in rax
+        emit("cmp rax, 0");
+        var endifLabel = label();
+        emit("je " + endifLabel);
+        braceblockNodeCode(n.children[4]);
+        emit(endifLabel + ":");
+    }
+    else {
+        exprNodeCode(n.children[2]); //leaves result in rax
+        emit("cmp rax, 0");
+        var elseLabel = label();
+        var endifLabel = label();
+        emit("je " + elseLabel);
+        braceblockNodeCode(n.children[4]);
+        emit("jmp " + endifLabel);
+        emit(elseLabel + ":");
+        braceblockNodeCode(n.children[6]);
+        emit(endifLabel + ":");
+    }
+}
+function stmtNodeCode(n) {
+    //stmt -> cond | loop | return-stmt SEMI
+    var c = n.children[0];
+    switch (c.sym) {
+        case "cond":
+            condNodeCode(c);
+            break;
+        case "loop":
+            loopNodeCode(c);
+            break;
+        case "return_stmt":
+            console.log("poopooshit");
+            returnstmtNodeCode(c);
+            break;
+        default:
+            ICE();
+    }
+}
+function returnstmtNodeCode(n) {
+    //return-stmt -> RETURN expr
+    exprNodeCode(n.children[1]);
+    //...move result from expr to rax...
+    emit("ret");
+}
+//end asm1
 var TreeNode = /** @class */ (function () {
     function TreeNode(sym, token) {
         this.sym = sym;
         this.token = token;
         this.children = [];
     }
+    // addChild(node : TreeNode){
+    //     this.children.push(node);
+    // }
     TreeNode.prototype.toString = function () {
         function walk(n, callback) {
             callback(n);
@@ -88,9 +205,9 @@ function parse(txt) {
     parser.removeErrorListeners();
     parser.addErrorListener(handler);
     //this assumes your start symbol is 'start'
-    var antlrroot = parser.start();
+    var antlrroot = parser.program();
     var root = walk(parser, antlrroot);
-    return root.children[0];
+    return makeAsm(root);
 }
 exports.parse = parse;
 //# sourceMappingURL=parser.js.map

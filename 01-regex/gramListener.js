@@ -11,15 +11,6 @@ function gramListener() {
 gramListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
 gramListener.prototype.constructor = gramListener;
 
-// Enter a parse tree produced by gramParser#start.
-gramListener.prototype.enterStart = function(ctx) {
-};
-
-// Exit a parse tree produced by gramParser#start.
-gramListener.prototype.exitStart = function(ctx) {
-};
-
-
 // Enter a parse tree produced by gramParser#program.
 gramListener.prototype.enterProgram = function(ctx) {
 };
