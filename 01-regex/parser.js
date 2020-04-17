@@ -6,6 +6,10 @@ var Lexer = require('./gramLexer.js').gramLexer;
 var Parser = require('./gramParser.js').gramParser;
 var asmCode = "";
 var labelCounter = 0; //made this in asm1
+var VarType;
+(function (VarType) {
+    VarType[VarType["INTEGER"] = 0] = "INTEGER";
+})(VarType = exports.VarType || (exports.VarType = {}));
 var ErrorHandler = /** @class */ (function () {
     function ErrorHandler() {
     }
@@ -16,6 +20,202 @@ var ErrorHandler = /** @class */ (function () {
     return ErrorHandler;
 }());
 //asm1
+//asmexpr
+function factorNodeCode(n) {
+    //factor -> NUM | LP expr RP
+    var child = n.children[0];
+    switch (child.sym) {
+        case "NUM":
+            var v = parseInt(child.token.lexeme, 10); //the fact we can give the option for other types makes the bonus impossible
+            emit("push qword " + v); //because we can't tell what the type is
+            return VarType.INTEGER; //synth
+        case "LP":
+            return exprNodeCode(n.children[1]);
+        default:
+            ICE(); //compiler made a boo boo if we hit this. If i get something that isn't a number or paranth, I did something wrong.
+    }
+}
+function convertStackTopToZeroOrOneInteger(type) {
+    if (type == VarType.INTEGER) {
+        emit("cmp qword [rsp], 0");
+        emit("setne al");
+        emit("movzx rax, al");
+        emit("mov [rsp], rax");
+    }
+    else {
+        throw new Error("What you got some wet code, convertStackTopToZero function called this");
+    }
+}
+function exprNodeCode(n) {
+    return orexpNodeCode(n.children[0]);
+}
+function orexpNodeCode(n) {
+    //orexp -> orexp OR andexp | andexp
+    if (n.children.length === 1)
+        return andexpNodeCode(n.children[0]);
+    else {
+        var orexpType = orexpNodeCode(n.children[0]);
+        convertStackTopToZeroOrOneInteger(orexpType);
+        var lbl = label();
+        emit("cmp qword [rsp], 0");
+        emit("jne " + lbl);
+        emit("add rsp,8"); //discard left result (0)
+        var andexpType = andexpNodeCode(n.children[2]);
+        convertStackTopToZeroOrOneInteger(andexpType);
+        emit(lbl + ":");
+        return VarType.INTEGER; //always integer, even if float operands
+    }
+}
+function andexpNodeCode(n) {
+    //andexp AND notexp | notexp
+    if (n.children.length === 1)
+        return notexpNodeCode(n.children[0]);
+    else {
+        var andexpType = andexpNodeCode(n.children[0]);
+        convertStackTopToZeroOrOneInteger(andexpType);
+        var lbl = label();
+        emit("cmp qword [rsp], 0");
+        emit("je " + lbl);
+        emit("add rsp,8"); //discard left result (0)
+        var notexpType = notexpNodeCode(n.children[2]);
+        convertStackTopToZeroOrOneInteger(notexpType);
+        emit(lbl + ":");
+        return VarType.INTEGER; //always integer, even if float operands
+    }
+}
+function notexpNodeCode(n) {
+    if (n.children.length === 1)
+        return relexpNodeCode(n.children[0]);
+    else {
+        var notexpType = notexpNodeCode(n.children[1]);
+        convertStackTopToZeroOrOneInteger(notexpType);
+        var lbl = label();
+        var lbl2 = label();
+        emit("cmp qword [rsp], 0"); //if this is true, then we'll push a 1 to the stack. We want to change it to be the opposite of what it does
+        emit("je " + lbl); //If it's true, we want to push a 1 to the stack
+        //we want to push a zero to the stack instead if we reach here
+        emit("add rsp, 8");
+        emit("push 0");
+        emit("jmp " + lbl2);
+        emit(lbl + ":");
+        emit("add rsp, 8");
+        emit("push 1");
+        emit(lbl2 + ":");
+        return VarType.INTEGER;
+    }
+}
+function relexpNodeCode(n) {
+    //rel |rarr| sum RELOP sum | sum
+    if (n.children.length === 1)
+        return sumNodeCode(n.children[0]);
+    else {
+        var sum1Type = sumNodeCode(n.children[0]);
+        var sum2Type = sumNodeCode(n.children[2]);
+        if (sum1Type !== VarType.INTEGER || sum2Type != VarType.INTEGER)
+            throw new Error("Poo poo stinky on your relative expression");
+        emit("pop rax"); //second operand
+        //first operand is on stack
+        emit("cmp [rsp],rax"); //do the compare
+        switch (n.children[1].token.lexeme) {
+            case ">=":
+                emit("setge al");
+                break;
+            case "<=":
+                emit("setle al");
+                break;
+            case ">":
+                emit("setg  al");
+                break;
+            case "<":
+                emit("setl  al");
+                break;
+            case "==":
+                emit("sete  al");
+                break;
+            case "!=":
+                emit("setne al");
+                break;
+            default: ICE();
+        }
+        emit("movzx qword rax, al"); //move with zero extend
+        emit("mov [rsp], rax");
+        return VarType.INTEGER;
+    }
+}
+function sumNodeCode(n) {
+    //sum -> sum PLUS term | sum MINUS term | term
+    console.log(n.children.length);
+    console.log(n.children);
+    if (n.children.length === 1)
+        return termNodeCode(n.children[0]);
+    else {
+        //...more code...
+        var sumType = sumNodeCode(n.children[0]);
+        var termType = termNodeCode(n.children[2]);
+        if (sumType !== VarType.INTEGER || termType != VarType.INTEGER) {
+            throw new Error("Your summation or term is not an integer");
+        }
+        emit("pop rbx"); //second operand
+        emit("pop rax"); //first operand
+        switch (n.children[1].sym) {
+            case "PLUS":
+                emit("add rax, rbx");
+                break;
+            case "MINUS":
+                emit("sub rax, rbx");
+                break;
+            default:
+                ICE();
+        }
+        emit("push rax");
+        return VarType.INTEGER;
+    }
+}
+function termNodeCode(n) {
+    if (n.children.length === 1)
+        return negNodeCode(n.children[0]);
+    else {
+        //...more code...
+        var termType = termNodeCode(n.children[0]);
+        var negType = negNodeCode(n.children[2]);
+        if (termType !== VarType.INTEGER || negType != VarType.INTEGER) {
+            throw new Error("Your summation or term is not an integer");
+        }
+        emit("pop rbx"); //second operand
+        emit("pop rax"); //first operand
+        emit("mov rdx, 0");
+        switch (n.children[1].token.lexeme) {
+            case "*":
+                emit("imul rbx");
+                break;
+            case "%":
+                emit("idiv rbx");
+                emit("mov rax, rdx");
+                break;
+            case "/":
+                emit("idiv rbx");
+                break;
+            default:
+                ICE();
+        }
+        emit("push rax");
+        return VarType.INTEGER;
+    }
+}
+function negNodeCode(n) {
+    if (n.children.length === 1)
+        return factorNodeCode(n.children[0]);
+    else {
+        var negType = negNodeCode(n.children[1]);
+        if (negType != VarType.INTEGER) {
+            throw new Error("you no negate a intenger, you negate" + negType);
+        }
+        emit("pop rax");
+        emit("neg rax");
+        emit("push rax");
+        return VarType.INTEGER;
+    }
+}
 function ICE() {
     throw new Error("ICE is here to take away your mexicans");
 }
@@ -35,11 +235,6 @@ function emit(instr) {
     asmCode += instr;
     asmCode += "\n";
 }
-function exprNodeCode(n) {
-    //expr -> NUM
-    var d = parseInt(n.children[0].token.lexeme, 10);
-    emit("mov rax, " + d);
-}
 function programNodeCode(n) {
     //program -> braceblock
     if (n.sym != "program")
@@ -52,7 +247,7 @@ function braceblockNodeCode(n) {
 }
 function stmtsNodeCode(n) {
     //stmts -> stmt stmts | lambda
-    console.log(n.children.length);
+    console.log(n.children);
     if (n.children.length == 0)
         return;
     stmtNodeCode(n.children[0]);
@@ -71,6 +266,7 @@ function loopNodeCode(n) {
     emit(startofLoopLabel + ":");
     exprNodeCode(n.children[2]);
     var endloopLabel = label();
+    emit("pop rax");
     emit("cmp rax, 0");
     emit("je " + endloopLabel);
     braceblockNodeCode(n.children[4]);
@@ -83,6 +279,7 @@ function condNodeCode(n) {
     if (n.children.length === 5) {
         //no 'else'
         exprNodeCode(n.children[2]); //leaves result in rax
+        emit("pop rax");
         emit("cmp rax, 0");
         var endifLabel = label();
         emit("je " + endifLabel);
@@ -91,6 +288,7 @@ function condNodeCode(n) {
     }
     else {
         exprNodeCode(n.children[2]); //leaves result in rax
+        emit("pop rax");
         emit("cmp rax, 0");
         var elseLabel = label();
         var endifLabel = label();
@@ -123,8 +321,8 @@ function stmtNodeCode(n) {
 function returnstmtNodeCode(n) {
     //return-stmt -> RETURN expr
     exprNodeCode(n.children[1]);
-    //...move result from expr to rax...
-    emit("ret");
+    emit("pop rax"); //exprsn
+    emit("ret"); //expr
 }
 //end asm1
 var TreeNode = /** @class */ (function () {

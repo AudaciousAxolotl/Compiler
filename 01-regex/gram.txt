@@ -39,7 +39,7 @@ loop : WHILE LP expr RP braceblock;
 cond : IF LP expr RP braceblock | IF LP expr RP braceblock ELSE braceblock;
 braceblock : LBR stmts RBR;
 return_stmt : RETURN expr;
-expr : NUM;
+expr : orexp;
 orexp : orexp OR andexp | andexp ;
 andexp : andexp AND notexp | notexp;
 notexp :  NOT notexp | rel;
